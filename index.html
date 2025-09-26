@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro SMS Sender</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --container-bg: #ffffff;
+            --text-color: #212529;
+            --label-color: #495057;
+            --input-border: #dee2e6;
+            --input-bg: #f1f3f5;
+            --input-focus-glow: rgba(0, 123, 255, 0.25);
+            --recipient-bg: #e9ecef;
+            --log-bg: #212529;
+            --log-text: #f8f9fa;
+            --log-details-bg: #343a40;
+            --shadow-color: rgba(0, 0, 0, 0.05);
+            --primary-color: #007bff;
+            --primary-hover: #0069d9;
+            --primary-gradient: linear-gradient(45deg, #007bff, #0056b3);
+            --success-color: #28a745;
+            --success-hover: #218838;
+            --danger-color: #dc3545;
+            --danger-hover: #c82333;
+            --secondary-color: #6c757d;
+            --secondary-hover: #5a6268;
+            --icon-color: #6c757d;
+            --icon-hover-color: #007bff;
+            --modal-overlay-bg: rgba(0, 0, 0, 0.5);
+            --accent-color: #4361ee;
+            --header-bg: linear-gradient(135deg, #4361ee, #3a0ca3);
+        }
+
+        body.dark-theme {
+            --bg-color: #121212;
+            --container-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --label-color: #adb5bd;
+            --input-border: #495057;
+            --input-bg: #2b2b2b;
+            --input-focus-glow: rgba(45, 136, 255, 0.25);
+            --recipient-bg: #343a40;
+            --log-bg: #0c0c0c;
+            --log-text: #e0e0e0;
+            --log-details-bg: #2b2b2b;
+            --shadow-color: rgba(0, 0, 0, 0.25);
+            --primary-color: #2d88ff;
+            --primary-hover: #1b74e8;
+            --primary-gradient: linear-gradient(45deg, #2d88ff, #1b74e8);
+            --success-color: #28a745;
+            --success-hover: #218838;
+            --danger-color: #dc3545;
+            --danger-hover: #c82333;
+            --secondary-color: #495057;
+            --secondary-hover: #343a40;
+            --icon-color: #adb5bd;
+            --icon-hover-color: #2d88ff;
+            --modal-overlay-bg: rgba(0, 0, 0, 0.6);
+            --accent-color: #4cc9f0;
+            --header-bg: linear-gradient(135deg, #3a0ca3, #7209b7);
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes toastOut { to { opacity: 0; transform: translateY(20px); } }
+        @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes modalScaleIn { 
+            from { transform: translate(-50%, -50%) scale(0.85); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        /* @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } } Removed pulse for professional look */
+        @keyframes flash-success {
+            0%   { background-color: var(--success-color); }
+            50%  { background-color: #34d399; }
+            100% { background-color: var(--success-color); }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+            font-size: 14px;
+        }
+
+        .app-wrapper { width: 100%; max-width: 100%; }
+        .container { width: 100%; background: var(--container-bg); min-height: 100vh; display: flex; flex-direction: column; }
+        .header { padding: 1rem 1.25rem; background-image: var(--header-bg); color: white; display: flex; justify-content: space-between; align-items: center; }
+        .header h2 { margin: 0; font-size: 1.25rem; font-weight: 700; }
+        .header-actions { display: flex; gap: 0.5rem; }
+        .panel { padding: 1.25rem; }
+        
+        label { display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem; color: var(--label-color); }
+        
+        input, textarea {
+            width: 100%; 
+            padding: 0.75rem 0.875rem;
+            border: 1px solid var(--input-border); 
+            border-radius: 0.75rem; 
+            font-size: 0.9rem;
+            box-sizing: border-box; 
+            background-color: var(--input-bg); 
+            color: var(--text-color);
+            transition: all 0.2s ease;
+            font-family: 'Poppins', sans-serif;
+            resize: vertical;
+        }
+        
+        textarea { margin-bottom: 0.25rem; }
+        input { margin-bottom: 1rem; }
+        
+        input:focus, textarea:focus {
+            outline: none; 
+            border-color: var(--primary-color); 
+            box-shadow: 0 0 0 4px var(--input-focus-glow);
+            transform: translateY(-2px);
+        }
+        
+        button, .button {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center; 
+            gap: 0.6rem;
+            padding: 0.875rem 1.25rem; /* Default button padding */
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600; 
+            color: white; 
+            border: none; 
+            border-radius: 0.75rem; 
+            cursor: pointer; 
+            width: 100%; /* Default to full width for many primary actions */
+            transition: all 0.2s ease-out;
+            outline: none;
+        }
+        
+        button:not(.utility-btn, .btn-icon, .remove-btn):hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+        }
+        
+        button:not(.utility-btn, .btn-icon, .remove-btn):active { 
+            transform: translateY(0); 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+        }
+
+        button:focus-visible {
+            box-shadow: 0 0 0 4px var(--input-focus-glow);
+        }
+        
+        button:disabled { 
+            background-color: var(--input-border) !important;
+            background-image: none !important; 
+            color: var(--label-color) !important;
+            cursor: not-allowed; 
+            transform: none !important; 
+            box-shadow: none !important; 
+        }
+
+        .btn-primary { background-image: var(--primary-gradient); }
+        .btn-primary:hover { filter: brightness(1.1); }
+        .btn-positive { background-color: var(--success-color); background-image: none; }
+        .btn-positive:hover { background-color: var(--success-hover); }
+        .btn-negative { background-color: var(--danger-color); background-image: none; }
+        .btn-negative:hover { background-color: var(--danger-hover); }
+        .btn-secondary { background-color: var(--secondary-color); background-image: none; color: white; }
+        .btn-secondary:hover { background-color: var(--secondary-hover); }
+        .btn-neutral { background-color: var(--input-bg); color: var(--label-color); }
+        .btn-neutral:hover { background-color: var(--recipient-bg); }
+        
+        /* NEW: Compact button style for Send/Schedule/Load Selected */
+        .btn-compact {
+            padding: 0.7rem 1.1rem; /* Slightly smaller padding */
+            font-size: 0.85rem; /* Slightly smaller font */
+            gap: 0.5rem; /* Adjust gap for smaller size */
+        }
+
+        .input-group button { 
+            width: auto; 
+            padding: 0.75rem 1rem;
+        }
+        
+        .utility-btn {
+            background: none; 
+            color: var(--label-color); 
+            font-size: 0.8rem; 
+            padding: 0.3rem; 
+            width: auto;
+            border-radius: 0.5rem;
+        }
+        .utility-btn:hover { 
+            color: var(--primary-color); 
+            background-color: var(--input-bg);
+        }
+        .utility-btn svg { width: 14px; height: 14px; }
+
+        .btn-icon {
+            background: none; 
+            color: white; 
+            padding: 0.5rem;
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+        }
+        .btn-icon:hover {
+            color: var(--icon-hover-color); 
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: rotate(20deg) scale(1.1);
+        }
+        .btn-icon svg { width: 20px; height: 20px; }
+
+        .input-group { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .input-group textarea { margin-bottom: 0; flex-grow: 1; height: 45px; }
+        
+        .label-group { display: flex; justify-content: space-between; align-items: center; }
+        
+        #recipientsBox {
+            background-color: var(--input-bg); border: 1px solid var(--input-border); 
+            border-radius: 0.75rem; padding: 0.5rem; min-height: 40px;
+            margin-bottom: 1rem; max-height: 100px; overflow-y: auto;
+            display: flex; flex-wrap: wrap; gap: 5px;
+        }
+        .recipient-tag {
+            display: inline-flex; align-items: center; background-color: var(--recipient-bg); 
+            color: var(--text-color); border-radius: 1rem; padding: 0.3rem 0.5rem;
+            font-size: 0.8rem; font-weight: 500; animation: fadeIn 0.3s ease-out;
+        }
+        .remove-btn {
+            margin-left: 0.3rem; border: none; background: none; color: var(--label-color); 
+            cursor: pointer; border-radius: 50%; width: 16px; height: 16px;
+            padding: 0; transition: color 0.2s, background-color 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .remove-btn:hover { background-color: rgba(0,0,0,0.1); color: var(--danger-color); }
+        .remove-btn svg { width: 10px; height: 10px; }
+
+        .logs-header { padding: 0 1.25rem 0.75rem 1.25rem; }
+        #logContainer {
+            background-color: var(--log-bg); color: var(--log-text);
+            padding: 0.5rem 1rem; font-size: 0.7rem; height: 180px;
+            overflow-y: auto; flex-grow: 1;
+        }
+
+        #sidebar-overlay, .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background-color: var(--modal-overlay-bg); 
+            z-index: 999;
+            opacity: 0; visibility: hidden; 
+            transition: opacity 0.3s, visibility 0.3s;
+            backdrop-filter: blur(4px); 
+        }
+        #sidebar-overlay.visible, .modal-overlay.visible { opacity: 1; visibility: visible; }
+        #sidebar {
+            position: fixed; top: 0; right: -320px; width: 280px; height: 100%;
+            background-color: var(--container-bg); 
+            box-shadow: -5px 0 20px rgba(0,0,0,0.1);
+            transition: right 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); 
+            padding: 1.25rem;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        #sidebar.open { right: 0; }
+        #sidebar h3 { margin-top: 0; font-weight: 600; color: var(--text-color); border-bottom: 1px solid var(--input-border); padding-bottom: 0.6rem; }
+        .sidebar-section { margin-top: 1.5rem; }
+
+        /* MODIFIED: Centered Toast Container */
+        #toast-container { 
+            position: fixed; 
+            top: 50%; /* Center vertically */
+            left: 50%; /* Center horizontally */
+            transform: translate(-50%, -50%); /* Adjust for element's own size */
+            z-index: 2000; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 10px; 
+            max-width: 90%; /* Prevent it from being too wide on small screens */
+            pointer-events: none; /* Allow clicks/touches to pass through the container */
+        }
+        .toast { 
+            background-color: #323232; 
+            color: white; 
+            padding: 10px 18px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
+            font-size: 0.8rem; 
+            animation: toastIn 0.3s ease-out; 
+            text-align: center; /* Center text within toast */
+            pointer-events: auto; /* Re-enable pointer events for the toast itself */
+            width: fit-content; /* Adjust width to content */
+            max-width: 100%; /* Ensure it doesn't overflow */
+        }
+        .toast.hide { animation: toastOut 0.3s ease-in forwards; }
+        .toast.success { background-color: var(--success-color); }
+        .toast.error { background-color: var(--danger-color); }
+        
+        #progress-container { width: 100%; background-color: var(--input-border); border-radius: 0.75rem; overflow: hidden; margin-top: 0.5rem; height: 8px; display: none; }
+        #progress-bar { width: 0%; height: 100%; background-image: var(--primary-gradient); transition: width 0.3s ease; border-radius: 0.75rem; }
+        .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.85); width: 95%; max-width: 400px; background-color: var(--container-bg); border-radius: 1rem; box-shadow: 0 10px 40px rgba(0,0,0,0.15); display: flex; flex-direction: column; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; }
+        .modal-overlay.visible .modal { visibility: visible; animation: modalScaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .modal-content { padding: 0 1.25rem 1.25rem; }
+        .modal-title { font-size: 1.125rem; font-weight: 600; margin: 0; color: var(--text-color); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid var(--input-border); }
+        .modal-message { font-size: 0.9rem; color: var(--label-color); margin: 1rem 0 1.5rem; text-align: center; line-height: 1.6; }
+        .modal-buttons { display: flex; gap: 0.5rem; }
+        
+        .theme-switch-wrapper { display: flex; align-items: center; justify-content: space-between; }
+        .theme-switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .theme-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 28px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary-color); }
+        input:checked + .slider:before { transform: translateX(22px); }
+        
+        #auth-container {
+            width: 100%;
+            max-width: 400px;
+            margin: auto;
+            padding: 2.2rem;
+            background: var(--container-bg);
+            border-radius: 1.25rem;
+            box-shadow: 0 15px 35px var(--shadow-color);
+            text-align: center;
+        }
+        #auth-container h2 { margin-bottom: 1.5rem; font-size: 1.5rem; }
+        #auth-container .modal-buttons { flex-direction: column; margin-top: 1rem; }
+        .auth-toggle-link { margin-top: 1.5rem; font-size: 0.85rem; color: var(--label-color); }
+        .auth-toggle-link a { color: var(--primary-color); text-decoration: none; font-weight: 500; cursor: pointer; }
+        .auth-toggle-link a:hover { text-decoration: underline; }
+        .user-info { font-size: 0.8rem; margin-bottom: 1rem; color: var(--label-color); }
+        #app-container { display: none; }
+
+        /* General input field group styling for icons/buttons */
+        .input-field-group {
+            position: relative;
+            margin-bottom: 1rem;
+            display: flex; /* For alignment of input and icon/button */
+            align-items: center;
+        }
+        .input-field-group input {
+            padding-left: 40px; /* Space for icon */
+        }
+        .input-field-group .input-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--label-color);
+            width: 20px;
+            height: 20px;
+            pointer-events: none; /* Icon shouldn't interfere with input focus */
+            z-index: 2;
+        }
+
+        /* Specific styling for password input with toggle button */
+        .input-field-group input[type="password"] {
+            padding-right: 40px; /* Space for the toggle button */
+        }
+        .input-field-group .password-toggle-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            position: absolute;
+            right: 12px; /* Position on the right */
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0;
+            color: var(--label-color);
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+        .password-toggle-btn:hover {
+            color: var(--primary-color);
+        }
+        .password-toggle-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+        #eye-off-icon { display: none; } /* Initial state: eye open, eye-off hidden */
+        
+        /* MODIFIED: Footer Styling */
+        .app-footer {
+            text-align: center; /* Center the text */
+            padding: 1rem 0; /* Add some vertical padding */
+            color: var(--label-color); /* Use a subtle text color */
+            font-size: 0.75rem; /* Make the font size a bit smaller */
+            margin-top: auto; /* Push the footer to the bottom in a flex column layout */
+            display: flex; /* Allow content inside to align */
+            flex-direction: column;
+            align-items: center; /* Center items horizontally */
+            gap: 0.25rem; /* Space between lines in footer */
+        }
+
+        /* NEW/MODIFIED: Specific button width adjustments for Contacts Modal */
+        /* "Add New" button in contacts modal header */
+        #contacts-modal .modal-header #openAddContactModalBtn {
+            width: auto; 
+        }
+
+        /* Styling for the contacts modal footer container */
+        #contacts-modal .contacts-modal-footer {
+            display: flex;
+            flex-direction: column; /* Stack the button group and the load button */
+            align-items: center;    /* Center them horizontally */
+            gap: 0.75rem;           /* Space between the two main elements in the footer */
+            padding: 1rem 1.25rem 1.25rem; /* Consistent modal padding */
+            border-top: 1px solid var(--input-border); /* Separator */
+        }
+
+        /* Styling for the div containing Import/Export buttons */
+        #contacts-modal .contacts-modal-footer .modal-buttons {
+            width: auto; /* Allow this container to shrink to fit its children */
+            justify-content: center; /* Center the buttons within this div */
+            flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+        }
+
+        /* Make Import/Export buttons themselves auto-width */
+        #contacts-modal .contacts-modal-footer .modal-buttons button {
+            width: auto;
+            flex-shrink: 0; /* Prevent them from shrinking too much */
+        }
+
+        /* Make "Load Selected" button auto-width */
+        #contacts-modal .contacts-modal-footer #loadSelectedContactsBtn {
+            width: auto;
+        }
+
+
+        @media (min-width: 768px) {
+            body { padding: 1.25rem; align-items: center; font-size: 15px; }
+            .container { border-radius: 1.25rem; box-shadow: 0 15px 35px var(--shadow-color); max-width: 600px; margin: 0 auto; min-height: auto; }
+            .header { padding: 1.5rem 2.2rem; }
+            .header h2 { font-size: 1.5rem; }
+            .panel { padding: 2.2rem; }
+            input, textarea { font-size: 1rem; padding: 0.8rem 1rem; }
+            #logContainer { height: 220px; padding: 0.6rem 1.5rem; font-size: 0.75rem; border-bottom-left-radius: 1.25rem; border-bottom-right-radius: 1.25rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="toast-container"></div>
+
+    <div id="auth-container">
+        <!-- Login View -->
+        <div id="login-view">
+            <h2>Welcome Back!</h2>
+            <p class="modal-message">Please sign in to continue.</p>
+            <div class="input-field-group">
+                <input type="email" id="loginEmail" placeholder="Email" required autocomplete="email">
+            </div>
+            <div class="input-field-group">
+                <input type="password" id="loginPassword" placeholder="Password" required autocomplete="current-password">
+            </div>
+            <div class="modal-buttons">
+                <button id="loginBtn" class="btn-primary">Login</button>
+            </div>
+            <p class="auth-toggle-link">Don't have an account? <a id="showRegisterLink">Register here</a></p>
+        </div>
+
+        <!-- Registration View -->
+        <div id="register-view" style="display: none;">
+            <h2>Create Account</h2>
+            <p class="modal-message">Join us to start sending messages.</p>
+             <div class="input-field-group">
+                <input type="text" id="registerName" placeholder="Full Name" required autocomplete="name">
+            </div>
+            <div class="input-field-group">
+                <input type="email" id="registerEmail" placeholder="Email" required autocomplete="email">
+            </div>
+            <div class="input-field-group">
+                <input type="password" id="registerPassword" placeholder="Password (min. 6 characters)" required autocomplete="new-password">
+            </div>
+            <div class="modal-buttons">
+                <button id="registerSubmitBtn" class="btn-positive">Create Account</button>
+            </div>
+             <p class="auth-toggle-link">Already have an account? <a id="showLoginLink">Login here</a></p>
+        </div>
+    </div>
+
+    <div class="app-wrapper" id="app-container">
+        <div class="container">
+            <div class="header">
+                <h2>Pro SMS Sender</h2>
+                <div class="header-actions">
+                    <button id="logoutBtn" title="Logout" class="btn-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    </button>
+                    <button id="historyBtn" title="Sending History" class="btn-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                    </button>
+                    <button id="contactsBtn" title="Contacts" class="btn-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    </button>
+                    <button id="settingsBtn" title="Settings" class="btn-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <form id="smsForm">
+                    <div id="schedule-status-banner"></div>
+                    
+                    <label for="phoneNumber">Add Phone Numbers (Paste or type)</label>
+                    <div class="input-group">
+                        <textarea id="phoneNumber" placeholder="+63... or 09..."></textarea>
+                        <button type="button" id="addBtn" title="Add numbers to list" class="btn-positive">Add</button>
+                    </div>
+
+                    <div class="label-group">
+                        <label>Recipients <span id="recipientCount"></span></label>
+                        <button type="button" class="utility-btn" id="clearListBtn">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            Clear List
+                        </button>
+                    </div>
+                    <div id="recipientsBox"></div>
+
+                    <div class="label-group">
+                        <label for="message">Message</label>
+                        <div>
+                            <button type="button" class="utility-btn" id="aiAssistantBtn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9z"/><path d="M12 8l-2 4h4l-2 4"/><path d="M12 19.5v-1.5"/></svg>
+                                AI Assistant
+                            </button>
+                            <button type="button" class="utility-btn" id="templatesBtn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                                Templates
+                            </button>
+                        </div>
+                    </div>
+                    <textarea id="message" rows="5" required></textarea>
+                    <div class="label-group">
+                        <div class="placeholder-info">Use <b>[name]</b> for contacts.</div>
+                        <div id="message-counter"></div>
+                    </div>
+
+                    <div class="modal-buttons">
+                        <button type="submit" id="sendBtn" class="btn-primary btn-compact">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                            Send to All
+                        </button>
+                        <button type="button" id="scheduleBtn" class="btn-secondary btn-compact">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            Schedule
+                        </button>
+                    </div>
+                    <button type="button" id="cancelBtn" class="btn-negative" style="display: none;">Cancel Sending</button>
+                    <div id="progress-container">
+                        <div id="progress-bar"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="label-group logs-header">
+                <label>Live Logs</label>
+                <div>
+                    <button type="button" class="utility-btn" id="exportLogBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        Export Log
+                    </button>
+                    <button type="button" class="utility-btn" id="clearLogBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        Clear Log
+                    </button>
+                </div>
+            </div>
+            <div id="logContainer"></div>
+        </div>
+
+        <footer class="app-footer">
+            Coded by Johnrelle | <span class="app-version">v3.4-FinalAuth</span>
+        </footer>
+    </div>
+
+
+    <!-- Settings Sidebar -->
+    <div id="sidebar-overlay"></div>
+    <div id="sidebar">
+        <h3>Settings</h3>
+        <div class="sidebar-section">
+            <div class="user-info" id="userInfo">Not logged in</div>
+        </div>
+        <div class="sidebar-section">
+            <div class="theme-switch-wrapper">
+                <label for="themeToggleCheckbox">Dark Mode</label>
+                <label class="theme-switch">
+                    <input type="checkbox" id="themeToggleCheckbox" />
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="theme-switch-wrapper">
+                <label for="allowDuplicatesCheckbox">Allow Duplicate Numbers</label>
+                <label class="theme-switch">
+                    <input type="checkbox" id="allowDuplicatesCheckbox" />
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <label for="sendingDelayInput">Sending Delay (ms)</label>
+            <input type="number" id="sendingDelayInput" value="500" min="100" step="100" placeholder="e.g., 500">
+        </div>
+
+        <div class="sidebar-section">
+            <label for="apiUsername">API Username</label>
+            <div class="input-field-group">
+                <input type="text" id="apiUsername" placeholder="Enter API Username">
+            </div>
+            
+            <label for="apiPassword">API Password</label>
+            <div class="input-field-group">
+                <input type="password" id="apiPassword" placeholder="Enter API Password">
+                <button type="button" id="togglePasswordBtn" class="password-toggle-btn" title="Toggle Password Visibility">
+                    <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <svg id="eye-off-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+            </div>
+            <button type="button" id="saveApiBtn" class="btn-primary">Save Settings</button>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal-overlay" class="modal-overlay">
+        <div id="confirmation-modal" class="modal">
+            <div class="modal-header">
+                 <h3 id="modal-title" class="modal-title">Confirm Action</h3>
+            </div>
+            <div class="modal-content">
+                <p id="modal-message" class="modal-message">Are you sure you want to proceed?</p>
+                <div id="modal-buttons" class="modal-buttons">
+                    <button id="modal-cancel-btn" class="btn-neutral">Cancel</button>
+                    <button id="modal-confirm-btn" class="btn-primary">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Contact Modal -->
+    <div id="add-contact-modal-overlay" class="modal-overlay">
+        <div id="add-contact-modal" class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New Contact</h3>
+            </div>
+            <div class="modal-content">
+                <form id="addContactForm">
+                    <div class="input-field-group">
+                        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        <input type="text" id="contactName" placeholder="Name" required>
+                    </div>
+                    <div class="input-field-group">
+                         <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                        <input type="text" id="contactPhone" placeholder="+63... or 09..." required>
+                    </div>
+                    <div class="modal-buttons" style="margin-top: 25px;">
+                        <button type="button" id="cancelAddContactBtn" class="btn-negative">Cancel</button>
+                        <button type="submit" class="btn-positive">Save Contact</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contacts List Modal -->
+    <div id="contacts-modal-overlay" class="modal-overlay">
+        <div id="contacts-modal" class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Your Contacts</h3>
+                <button type="button" id="openAddContactModalBtn" class="btn-secondary btn-compact">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Add New
+                </button>
+            </div>
+            <div class="contacts-modal-body">
+                <div class="input-field-group">
+                    <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" id="contactSearchInput" placeholder="Search contacts...">
+                </div>
+                <div class="select-all-container">
+                     <input type="checkbox" id="selectAllContactsCheckbox">
+                     <label for="selectAllContactsCheckbox">Select All / Deselect All</label>
+                </div>
+                <div id="contacts-list-container"></div>
+            </div>
+            <div class="contacts-modal-footer">
+                <div class="modal-buttons">
+                    <button id="importContactsBtn" class="btn-secondary">Import CSV</button>
+                    <input type="file" id="csvFileInput" hidden accept=".csv">
+                    <button id="exportContactsBtn" class="btn-secondary">Export CSV</button>
+                </div>
+                <button id="loadSelectedContactsBtn" class="btn-positive btn-compact">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 9l-5 5-5-5M12 14V3"></path></svg>
+                    Load Selected
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Schedule Modal -->
+    <div id="schedule-modal-overlay" class="modal-overlay">
+        <div id="schedule-modal" class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Schedule Sending</h3>
+            </div>
+            <div class="modal-content">
+                <p class="modal-message" style="margin-top: 15px;">Select a future date and time. The browser tab must remain open.</p>
+                <div class="input-field-group">
+                    <input type="datetime-local" id="schedule-datetime-input">
+                </div>
+                <div class="modal-buttons" style="margin-top: 25px;">
+                    <button id="cancel-schedule-btn" class="btn-negative">Cancel</button>
+                    <button id="confirm-schedule-btn" class="btn-positive">Set Schedule</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Templates Modal -->
+    <div id="templates-modal-overlay" class="modal-overlay">
+        <div id="templates-modal" class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Message Templates</h3>
+            </div>
+            <div class="modal-content" style="padding-top: 15px;">
+                <div id="templates-list-container"></div>
+                <label for="newTemplateInput">Save Current Message as New Template:</label>
+                <input type="text" id="newTemplateNameInput" placeholder="Enter template name...">
+                <div class="modal-buttons" style="margin-top: 15px;">
+                     <button id="cancel-template-btn" class="btn-negative">Close</button>
+                    <button id="save-template-btn" class="btn-positive">Save Template</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- History Modal -->
+    <div id="history-modal-overlay" class="modal-overlay">
+        <div id="history-modal" class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Sending History</h3>
+                 <button type="button" class="utility-btn" id="clearHistoryBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    Clear History
+                </button>
+            </div>
+            <div class="modal-content" style="padding-top: 15px;">
+                <div id="history-list-container"></div>
+                 <div class="modal-buttons" style="margin-top: 15px;">
+                    <button id="close-history-btn" class="btn-negative">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Assistant Modal -->
+    <div id="ai-assistant-modal-overlay" class="modal-overlay">
+        <div id="ai-assistant-modal" class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">AI Message Assistant</h3>
+            </div>
+            <div class="modal-content">
+                <p class="modal-message" style="margin-top: 15px;">Enter a prompt and let AI generate the message for you.</p>
+                <form id="aiPromptForm">
+                    <div class="input-field-group">
+                        <textarea id="ai-prompt-input" rows="4" placeholder="e.g., A friendly reminder for a dental appointment tomorrow at 3 PM."></textarea>
+                    </div>
+                    <div class="modal-buttons" style="margin-top: 25px;">
+                        <button type="button" id="cancel-ai-btn" class="btn-negative">Cancel</button>
+                        <button type="submit" id="generate-ai-btn" class="btn-positive">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9z"/><path d="M12 8l-2 4h4l-2 4"/><path d="M12 19.5v-1.5"/></svg>
+                            Generate
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- START FIREBASE CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDVDDmmDG1RdB4JMFvmg9hA-7UetJD3r7w",
+            authDomain: "sms-pro-sender.firebaseapp.com",
+            projectId: "sms-pro-sender",
+            storageBucket: "sms-pro-sender.firebasestorage.app",
+            messagingSenderId: "531893459116",
+            appId: "1:531893459116:web:cd5e6cb473e421cb342709"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        let currentUser = null;
+        let userDataRef = null;
+        // --- END FIREBASE CONFIGURATION ---
+
+        // --- START APP CONFIGURATION ---
+        let SMSGATE_USERNAME = ''; 
+        let SMSGATE_PASSWORD = '';
+        const ORIGINAL_API_URL = 'https://api.sms-gate.app/3rdparty/v1/messages';
+        const AI_API_URL = 'https://urangkapolka.vercel.app/api/chatgpt4';
+        const PROXY_URL = 'https://corsproxy.io/?';
+        let API_URL = PROXY_URL + encodeURIComponent(ORIGINAL_API_URL);
+        // --- END APP CONFIGURATION ---
+
+        // --- ELEMENT SELECTION ---
+        const authContainer = document.getElementById('auth-container');
+        const loginView = document.getElementById('login-view');
+        const registerView = document.getElementById('register-view');
+        const loginEmailInput = document.getElementById('loginEmail');
+        const loginPasswordInput = document.getElementById('loginPassword');
+        const registerNameInput = document.getElementById('registerName');
+        const registerEmailInput = document.getElementById('registerEmail');
+        const registerPasswordInput = document.getElementById('registerPassword');
+        const loginBtn = document.getElementById('loginBtn');
+        const registerSubmitBtn = document.getElementById('registerSubmitBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const userInfo = document.getElementById('userInfo');
+        const showRegisterLink = document.getElementById('showRegisterLink');
+        const showLoginLink = document.getElementById('showLoginLink');
+        const appContainer = document.getElementById('app-container');
+        const smsForm = document.getElementById('smsForm');
+        const phoneNumberInput = document.getElementById('phoneNumber');
+        const messageInput = document.getElementById('message');
+        const sendBtn = document.getElementById('sendBtn');
+        const addBtn = document.getElementById('addBtn');
+        const recipientsBox = document.getElementById('recipientsBox');
+        const logContainer = document.getElementById('logContainer');
+        const recipientCount = document.getElementById('recipientCount');
+        const clearListBtn = document.getElementById('clearListBtn');
+        const clearLogBtn = document.getElementById('clearLogBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const themeToggle = document.getElementById('themeToggleCheckbox');
+        const apiUsernameInput = document.getElementById('apiUsername');
+        const apiPasswordInput = document.getElementById('apiPassword');
+        const saveApiBtn = document.getElementById('saveApiBtn');
+        const messageCounter = document.getElementById('message-counter');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const toastContainer = document.getElementById('toast-container');
+        const confirmationModalOverlay = document.getElementById('confirmation-modal-overlay');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+        const contactsBtn = document.getElementById('contactsBtn');
+        const contactsModalOverlay = document.getElementById('contacts-modal-overlay');
+        const addContactModalOverlay = document.getElementById('add-contact-modal-overlay');
+        const openAddContactModalBtn = document.getElementById('openAddContactModalBtn');
+        const addContactForm = document.getElementById('addContactForm');
+        const cancelAddContactBtn = document.getElementById('cancelAddContactBtn');
+        const contactNameInput = document.getElementById('contactName');
+        // FIX: Corrected typo for contactPhoneInput selection
+        const contactPhoneInput = document.getElementById('contactPhone');
+        const contactsListContainer = document.getElementById('contacts-list-container');
+        const selectAllContactsCheckbox = document.getElementById('selectAllContactsCheckbox');
+        const loadSelectedContactsBtn = document.getElementById('loadSelectedContactsBtn');
+        const contactSearchInput = document.getElementById('contactSearchInput');
+        const allowDuplicatesCheckbox = document.getElementById('allowDuplicatesCheckbox');
+        const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+        // FIX: Select eye icons within the togglePasswordBtn
+        const eyeIcon = togglePasswordBtn.querySelector('#eye-icon');
+        const eyeOffIcon = togglePasswordBtn.querySelector('#eye-off-icon');
+        const scheduleBtn = document.getElementById('scheduleBtn');
+        const scheduleModalOverlay = document.getElementById('schedule-modal-overlay');
+        const scheduleDatetimeInput = document.getElementById('schedule-datetime-input');
+        const confirmScheduleBtn = document.getElementById('confirm-schedule-btn');
+        const cancelScheduleBtn = document.getElementById('cancel-schedule-btn');
+        const scheduleStatusBanner = document.getElementById('schedule-status-banner');
+        const templatesBtn = document.getElementById('templatesBtn');
+        const templatesModalOverlay = document.getElementById('templates-modal-overlay');
+        const templatesListContainer = document.getElementById('templates-list-container');
+        const newTemplateNameInput = document.getElementById('newTemplateNameInput');
+        const saveTemplateBtn = document.getElementById('save-template-btn');
+        const cancelTemplateBtn = document.getElementById('cancel-template-btn');
+        const historyBtn = document.getElementById('historyBtn');
+        const historyModalOverlay = document.getElementById('history-modal-overlay');
+        const historyListContainer = document.getElementById('history-list-container');
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        const closeHistoryBtn = document.getElementById('close-history-btn');
+        const sendingDelayInput = document.getElementById('sendingDelayInput');
+        const exportLogBtn = document.getElementById('exportLogBtn');
+        const importContactsBtn = document.getElementById('importContactsBtn');
+        const exportContactsBtn = document.getElementById('exportContactsBtn');
+        const csvFileInput = document.getElementById('csvFileInput');
+        const aiAssistantBtn = document.getElementById('aiAssistantBtn');
+        const aiAssistantModalOverlay = document.getElementById('ai-assistant-modal-overlay');
+        const aiPromptForm = document.getElementById('aiPromptForm');
+        const aiPromptInput = document.getElementById('ai-prompt-input');
+        const generateAiBtn = document.getElementById('generate-ai-btn');
+        const cancelAiBtn = document.getElementById('cancel-ai-btn');
+
+
+        let recipientList = [];
+        let contacts = [];
+        let messageTemplates = [];
+        let sendingHistory = [];
+        let cancelSend = false;
+        let allowDuplicates = false;
+        let sendingDelay = 500;
+        let scheduledJobId = null;
+
+        // --- HELPER & UI FUNCTIONS ---
+        function formatAndValidatePhoneNumber(number) {
+            let cleanNumber = String(number).replace(/\D/g, '');
+            if (cleanNumber.startsWith('09') && cleanNumber.length === 11) {
+                cleanNumber = '63' + cleanNumber.substring(1);
+            }
+            if (cleanNumber.startsWith('63') && cleanNumber.length === 12) {
+                return '+' + cleanNumber;
+            }
+            return null;
+        }
+
+        function isValidEmail(email) {
+            const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+            return re.test(String(email).toLowerCase());
+        }
+
+        function showToast(message, type = 'info', duration = 3000) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('hide');
+                toast.addEventListener('animationend', () => toast.remove());
+            }, duration);
+        }
+
+        function updateMessageCounter() {
+            const message = messageInput.value;
+            const length = message.length;
+            const isUnicode = /[^\u0000-\u007F]/.test(message);
+            let parts = Math.ceil(length / (isUnicode ? (length > 70 ? 67 : 70) : (length > 160 ? 153 : 160)));
+            if (length === 0) parts = 0;
+            messageCounter.textContent = `Chars: ${length} | Parts: ${parts}`;
+        }
+        
+        function showConfirmationModal({ title, message, confirmText = 'Confirm' }) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modalConfirmBtn.textContent = confirmText;
+            confirmationModalOverlay.classList.add('visible');
+            
+            return new Promise((resolve) => {
+                const cleanup = () => {
+                    modalConfirmBtn.onclick = null;
+                    modalCancelBtn.onclick = null;
+                    confirmationModalOverlay.onclick = null;
+                };
+
+                modalConfirmBtn.onclick = () => { confirmationModalOverlay.classList.remove('visible'); cleanup(); resolve(true); };
+                modalCancelBtn.onclick = () => { confirmationModalOverlay.classList.remove('visible'); cleanup(); resolve(false); };
+                confirmationModalOverlay.onclick = (e) => { if (e.target === confirmationModalOverlay) { modalCancelBtn.onclick(); } };
+            });
+        }
+
+        function applyTheme(theme) {
+            document.body.classList.toggle('dark-theme', theme === 'dark');
+            themeToggle.checked = (theme === 'dark');
+        }
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('open');
+            sidebarOverlay.classList.toggle('visible');
+        }
+        
+        // --- Settings & FIRESTORE Data Management ---
+        async function saveSettings() {
+            if (!userDataRef) return;
+            const settings = {
+                theme: themeToggle.checked ? 'dark' : 'light',
+                apiUsername: apiUsernameInput.value.trim(),
+                apiPassword: apiPasswordInput.value.trim(),
+                allowDuplicates: allowDuplicatesCheckbox.checked,
+                sendingDelay: parseInt(sendingDelayInput.value, 10) || 500
+            };
+            try {
+                await userDataRef.set({ settings }, { merge: true });
+                // Update local state after saving
+                SMSGATE_USERNAME = settings.apiUsername;
+                SMSGATE_PASSWORD = settings.apiPassword;
+                allowDuplicates = settings.allowDuplicates;
+                sendingDelay = settings.sendingDelay;
+                applyTheme(settings.theme);
+                showToast('Settings saved to cloud!', 'success');
+            } catch (error) {
+                showToast('Failed to save settings.', 'error');
+                addLog('error', 'Firestore Save Error', error.message);
+            }
+        }
+
+        async function loadAllUserData() {
+            if (!userDataRef) return;
+            try {
+                const doc = await userDataRef.get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    // Load Settings
+                    if (data.settings) {
+                        const s = data.settings;
+                        applyTheme(s.theme || 'light');
+                        apiUsernameInput.value = s.apiUsername || '';
+                        apiPasswordInput.value = s.apiPassword || '';
+                        allowDuplicatesCheckbox.checked = s.allowDuplicates || false;
+                        sendingDelayInput.value = s.sendingDelay || 500;
+                        // Update local state
+                        SMSGATE_USERNAME = s.apiUsername || '';
+                        SMSGATE_PASSWORD = s.apiPassword || '';
+                        allowDuplicates = s.allowDuplicates || false;
+                        sendingDelay = s.sendingDelay || 500;
+                    }
+                    // Load other data
+                    contacts = data.contacts || [];
+                    messageTemplates = data.messageTemplates || [];
+                    sendingHistory = data.sendingHistory || [];
+
+                    addLog('info', 'User data loaded from Firestore.');
+                } else {
+                    addLog('info', `Welcome, ${currentUser.displayName || currentUser.email}! Creating your new data profile.`);
+                }
+            } catch (error) {
+                addLog('error', 'Failed to load user data.', error.message);
+                showToast('Could not load your data.', 'error');
+            }
+        }
+
+        // --- Data Management Functions (Firestore) ---
+        async function saveData(key, data) {
+            if (!userDataRef) return;
+            try {
+                await userDataRef.set({ [key]: data }, { merge: true });
+            } catch (error) {
+                addLog('error', `Failed to save ${key}.`, error.message);
+            }
+        }
+
+        const saveContacts = () => saveData('contacts', contacts);
+        const saveTemplates = () => saveData('messageTemplates', messageTemplates);
+        const saveHistory = () => saveData('sendingHistory', sendingHistory);
+
+        function renderContactsList(filter = '') {
+            contactsListContainer.innerHTML = '';
+            const filteredContacts = contacts.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()) || c.phone.includes(filter));
+            if (filteredContacts.length === 0) {
+                contactsListContainer.innerHTML = '<p style="text-align: center; color: var(--label-color); margin-top: 20px;">No contacts found.</p>';
+                return;
+            }
+            filteredContacts.forEach(contact => {
+                const originalIndex = contacts.findIndex(c => c.phone === contact.phone && c.name === contact.name);
+                const el = document.createElement('div');
+                el.className = 'contact-item';
+                el.innerHTML = `<input type="checkbox" class="contact-checkbox" data-phone="${contact.phone}"><div class="contact-info"><div class="contact-name">${contact.name}</div><div class="contact-phone">${contact.phone}</div></div><button type="button" class="delete-contact-btn" data-index="${originalIndex}" title="Delete ${contact.name}"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>`;
+                contactsListContainer.appendChild(el);
+            });
+        }
+
+        function renderTemplates() {
+            templatesListContainer.innerHTML = '';
+            if (messageTemplates.length === 0) {
+                templatesListContainer.innerHTML = '<p style="text-align: center; color: var(--label-color);">No templates saved.</p>'; return;
+            }
+            messageTemplates.forEach((template, index) => {
+                const item = document.createElement('div');
+                item.className = 'list-item';
+                item.innerHTML = `<div class="list-item-content" data-index="${index}"><div class="list-item-title">${template.name}</div><div class="list-item-details">${template.message}</div></div><div class="list-item-actions"><button type="button" class="delete-contact-btn delete-template-btn" data-index="${index}" title="Delete Template"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div>`;
+                templatesListContainer.appendChild(item);
+            });
+        }
+        
+        function renderHistory() {
+            historyListContainer.innerHTML = '';
+            if (sendingHistory.length === 0) {
+                historyListContainer.innerHTML = '<p style="text-align: center; color: var(--label-color);">No sending history.</p>'; return;
+            }
+            [...sendingHistory].reverse().forEach(job => {
+                const item = document.createElement('div');
+                item.className = 'list-item';
+                const jobDate = new Date(job.date);
+                item.innerHTML = `<div class="list-item-content"><div class="list-item-title">${jobDate.toLocaleString()}</div><div class="list-item-details" style="white-space: normal; margin-top: 5px;">"${job.message}"<br><b>Sent:</b> ${job.success} | <b>Failed:</b> ${job.failed} | <b>Total:</b> ${job.total}</div></div>`;
+                historyListContainer.appendChild(item);
+            });
+        }
+
+        // --- CORE APPLICATION LOGIC ---
+        const LOG_ICONS = {
+            success: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`,
+            error: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`,
+            info: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`,
+            warn: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`
+        };
+
+        function addLog(status, title, details = null) {
+            const timestamp = new Date().toLocaleTimeString();
+            let detailsHtml = '';
+            if (details) {
+                const detailsText = (typeof details === 'object') ? JSON.stringify(details, null, 2) : details;
+                detailsHtml = `<div class="log-details">${detailsText}</div>`;
+            }
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `<div class="log-header"><div class="log-main"><span class="log-icon ${status}">${LOG_ICONS[status] || LOG_ICONS.info}</span><div class="log-title"><span class="log-status ${status}">${status.toUpperCase()}</span><span>${title}</span></div></div><span class="log-timestamp">${timestamp}</span></div>${detailsHtml}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        function handleApiError(error, number) {
+            let userMessage = `Failed to send to ${number}.`; let stopProcess = false;
+            const statusCode = error.status || error.statusCode;
+            const errorMessage = error.message || JSON.stringify(error);
+            switch (statusCode) {
+                case 401: userMessage = "Authentication Failed. Check API credentials in Settings."; stopProcess = true; break;
+                case 403: userMessage = "Permission Denied. Could be insufficient funds."; stopProcess = true; break;
+                case 400: userMessage = `Invalid Request for ${number}. API: ${errorMessage}`; break;
+                default: userMessage = `An unexpected error occurred for ${number}.`; break;
+            }
+            addLog('error', userMessage, error);
+            return { stopProcess };
+        }
+
+        function renderRecipients() {
+            recipientsBox.innerHTML = '';
+            recipientList.forEach((number, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'recipient-tag';
+                tag.innerHTML = `<span>${number}</span><button type="button" class="remove-btn" data-index="${index}" title="Remove ${number}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>`;
+                recipientsBox.appendChild(tag);
+            });
+            recipientCount.textContent = `(${recipientList.length})`;
+        }
+
+        function addNumbers() {
+            const numbersText = phoneNumberInput.value.trim();
+            if (!numbersText) return;
+            const numbers = numbersText.split(/[\s,;\n]+/).filter(n => n); 
+            let addedCount = 0;
+            numbers.forEach(number => {
+                const formattedNumber = formatAndValidatePhoneNumber(number);
+                if (formattedNumber) {
+                    if (allowDuplicates || !recipientList.includes(formattedNumber)) {
+                        recipientList.push(formattedNumber);
+                        addedCount++;
+                    } else { addLog('warn', `Duplicate Number Skipped: ${formattedNumber}`); }
+                } else { addLog('error', `Invalid Number Skipped: ${number}`); }
+            });
+
+            if (addedCount > 0) {
+                 addLog('info', `Added ${addedCount} new number(s).`);
+                 addBtn.disabled = true;
+                 addBtn.classList.add('flash-success');
+                 addBtn.innerHTML = 'Added!';
+                 setTimeout(() => {
+                    addBtn.disabled = false;
+                    addBtn.innerHTML = 'Add';
+                    addBtn.classList.remove('flash-success');
+                 }, 1500);
+            }
+            renderRecipients();
+            phoneNumberInput.value = '';
+            phoneNumberInput.focus();
+        }
+
+        async function startSendingProcess() {
+            const messageText = messageInput.value.trim();
+            const totalRecipients = recipientList.length;
+
+            sendBtn.style.display = 'none';
+            scheduleBtn.style.display = 'none';
+            cancelBtn.style.display = 'flex';
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            cancelSend = false;
+            let successCount = 0, errorCount = 0;
+
+            addLog('info', `Starting to send messages to ${totalRecipients} number(s)...`);
+
+            for (let i = 0; i < totalRecipients; i++) {
+                if (cancelSend) { addLog('warn', 'Sending cancelled by user.'); break; }
+                const number = recipientList[i];
+                cancelBtn.textContent = `Sending (${i + 1}/${totalRecipients})...`;
+                progressBar.style.width = `${((i + 1) / totalRecipients) * 100}%`;
+
+                let personalizedMessage = messageText;
+                const contact = contacts.find(c => c.phone === number);
+                if (contact && personalizedMessage.includes('[name]')) {
+                    personalizedMessage = personalizedMessage.replace(/\[name\]/g, contact.name);
+                    addLog('info', `Personalized message for ${contact.name} (${number})`);
+                }
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Basic ' + btoa(SMSGATE_USERNAME + ':' + SMSGATE_PASSWORD), 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: personalizedMessage, phoneNumbers: [number] })
+                    });
+                    if (!response.ok) { const e = await response.json(); e.status = response.status; throw e; }
+                    addLog('success', `Message to ${number} sent`);
+                    successCount++;
+                } catch (error) {
+                    const handlerResult = handleApiError(error, number);
+                    errorCount++;
+                    if (handlerResult.stopProcess) {
+                        addLog('error', 'Critical error detected. Aborting sending process.');
+                        cancelSend = true;
+                    }
+                }
+                await new Promise(resolve => setTimeout(resolve, sendingDelay));
+            }
+            addLog('info', `--- Process Complete ---`, `Sent: ${successCount} | Failed: ${errorCount}`);
+            sendingHistory.push({ id: Date.now(), date: new Date().toISOString(), message: messageText.substring(0, 100) + (messageText.length > 100 ? '...' : ''), total: totalRecipients, success: successCount, failed: errorCount });
+            saveHistory();
+
+            sendBtn.style.display = 'flex';
+            scheduleBtn.style.display = 'flex';
+            cancelBtn.style.display = 'none';
+            cancelBtn.textContent = 'Cancel Sending';
+            setTimeout(() => { progressContainer.style.display = 'none'; progressBar.style.width = '0%'; }, 1000);
+        }
+
+        // --- EVENT LISTENERS (Main App) ---
+        // (Re-declaring existing element selections and event listeners for context - already done above)
+        // These are intentionally kept as they were in the original code, except for the bug fixes.
+        
+        themeToggle.addEventListener('change', () => saveSettings());
+        settingsBtn.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+        saveApiBtn.addEventListener('click', () => {
+             saveSettings();
+             toggleSidebar();
+        });
+        allowDuplicatesCheckbox.addEventListener('change', () => saveSettings());
+        sendingDelayInput.addEventListener('change', () => {
+            const d = parseInt(sendingDelayInput.value, 10);
+            if(d >= 100) { saveSettings(); } 
+            else { sendingDelayInput.value = sendingDelay; showToast('Delay must be at least 100ms.', 'error'); }
+        });
+        togglePasswordBtn.addEventListener('click', () => {
+            const isPwd = apiPasswordInput.type === 'password';
+            apiPasswordInput.type = isPwd ? 'text' : 'password';
+            eyeIcon.style.display = isPwd ? 'none' : 'block';
+            eyeOffIcon.style.display = isPwd ? 'block' : 'none';
+        });
+        addBtn.addEventListener('click', addNumbers);
+        phoneNumberInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addNumbers(); } });
+        recipientsBox.addEventListener('click', (e) => { const btn = e.target.closest('.remove-btn'); if (btn) { recipientList.splice(parseInt(btn.dataset.index, 10), 1); renderRecipients(); } });
+        clearListBtn.addEventListener('click', async () => { if (recipientList.length > 0 && await showConfirmationModal({ title: 'Clear Recipients', message: `Remove all ${recipientList.length} recipients?`, confirmText: 'Clear All' })) { recipientList = []; renderRecipients(); addLog('info', 'Recipient list cleared.'); } });
+        clearLogBtn.addEventListener('click', async () => { if (logContainer.innerHTML.trim() !== '' && await showConfirmationModal({ title: 'Clear Logs', message: 'Are you sure you want to clear all logs?', confirmText: 'Clear' })) { logContainer.innerHTML = ''; } });
+        cancelBtn.addEventListener('click', () => { cancelSend = true; addLog('warn', 'Cancellation requested...'); });
+        messageInput.addEventListener('input', updateMessageCounter);
+
+        function validateAndPrepareSend() {
+            if (!currentUser) { showToast('You must be logged in to send messages.', 'error'); return false; }
+            if (recipientList.length === 0) { showToast('Please add at least one recipient.', 'error'); return false; }
+            if (!messageInput.value.trim()) { showToast('Please enter a message.', 'error'); return false; }
+            if (!SMSGATE_USERNAME || !SMSGATE_PASSWORD) { showToast('Please set your API credentials in Settings.', 'error'); toggleSidebar(); return false; }
+            return true;
+        }
+
+        smsForm.addEventListener('submit', async (e) => { e.preventDefault(); if (!validateAndPrepareSend()) return; if (await showConfirmationModal({ title: 'Confirm Send', message: `Send ${recipientList.length} SMS messages?`, confirmText: 'Send SMS' })) { startSendingProcess(); } });
+        scheduleBtn.addEventListener('click', () => { if (!validateAndPrepareSend()) return; const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); scheduleDatetimeInput.min = now.toISOString().slice(0,16); scheduleModalOverlay.classList.add('visible'); });
+        cancelScheduleBtn.addEventListener('click', () => scheduleModalOverlay.classList.remove('visible'));
+        confirmScheduleBtn.addEventListener('click', () => {
+            const scheduledTime = new Date(scheduleDatetimeInput.value).getTime();
+            const now = new Date().getTime();
+            if (isNaN(scheduledTime) || scheduledTime <= now) { showToast('Please select a time in the future.', 'error'); return; }
+            scheduledJobId = setTimeout(startSendingProcess, scheduledTime - now);
+            scheduleModalOverlay.classList.remove('visible');
+            sendBtn.disabled = true; scheduleBtn.disabled = true;
+            const d = new Date(scheduledTime);
+            scheduleStatusBanner.innerHTML = `Scheduled to send at ${d.toLocaleString()}. <button id="cancel-scheduled-job">Cancel</button>`;
+            scheduleStatusBanner.style.display = 'block';
+            showToast('Messages scheduled successfully!', 'success');
+            addLog('info', `Job scheduled for ${d.toLocaleString()}`);
+        });
+        scheduleStatusBanner.addEventListener('click', e => { if (e.target.id === 'cancel-scheduled-job') { clearTimeout(scheduledJobId); scheduledJobId = null; sendBtn.disabled = false; scheduleBtn.disabled = false; scheduleStatusBanner.style.display = 'none'; showToast('Scheduled job cancelled.', 'info'); addLog('warn', 'Scheduled job was cancelled.'); } });
+        
+        exportLogBtn.addEventListener('click', () => {
+            const logs = Array.from(logContainer.querySelectorAll('.log-entry'));
+            if (logs.length === 0) { showToast('Log is empty.', 'info'); return; }
+            let logText = `Pro SMS Sender Log\nExported on: ${new Date().toLocaleString()}\n\n`;
+            logs.forEach(log => {
+                const status = log.querySelector('.log-status').textContent.trim();
+                const title = log.querySelector('.log-title span:last-child').textContent.trim();
+                const timestamp = log.querySelector('.log-timestamp').textContent.trim();
+                const detailsEl = log.querySelector('.log-details');
+                logText += `[${timestamp} - ${status}] ${title}\n`;
+                if (detailsEl) { logText += `  Details: ${detailsEl.textContent.trim()}\n`; }
+                logText += '---\n';
+            });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([logText], { type: 'text/plain' })); a.download = `sms-sender-log-${new Date().toISOString().split('T')[0]}.txt`; a.click(); URL.revokeObjectURL(a.href);
+            showToast('Log exported!', 'success');
+        });
+
+        contactsBtn.addEventListener('click', () => { renderContactsList(); contactsModalOverlay.classList.add('visible'); });
+        contactsModalOverlay.addEventListener('click', (e) => { if (e.target === contactsModalOverlay) { contactsModalOverlay.classList.remove('visible'); } });
+        openAddContactModalBtn.addEventListener('click', () => { contactsModalOverlay.classList.remove('visible'); addContactModalOverlay.classList.add('visible'); addContactForm.reset(); contactNameInput.focus(); });
+        cancelAddContactBtn.addEventListener('click', () => { addContactModalOverlay.classList.remove('visible'); contactsModalOverlay.classList.add('visible'); });
+        addContactModalOverlay.addEventListener('click', (e) => { if (e.target === addContactModalOverlay) { cancelAddContactBtn.click(); } });
+        addContactForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = contactNameInput.value.trim();
+            const phone = formatAndValidatePhoneNumber(contactPhoneInput.value.trim());
+            if (!name || !phone) { showToast('Please enter a valid name and phone number.', 'error'); return; }
+            if (contacts.some(c => c.phone === phone)) { showToast('Contact with this number already exists.', 'warn'); return; }
+            contacts.push({ name, phone }); saveContacts(); showToast('Contact added!', 'success');
+            addContactModalOverlay.classList.remove('visible'); contactsModalOverlay.classList.add('visible'); renderContactsList();
+        });
+        contactsListContainer.addEventListener('click', async (e) => {
+            const btn = e.target.closest('.delete-contact-btn');
+            if (btn) {
+                const index = parseInt(btn.dataset.index, 10);
+                if (await showConfirmationModal({ title: 'Delete Contact', message: `Delete ${contacts[index].name}?`, confirmText: 'Delete' })) {
+                    contacts.splice(index, 1); saveContacts(); showToast('Contact deleted.', 'info'); renderContactsList(contactSearchInput.value);
+                }
+            }
+        });
+        selectAllContactsCheckbox.addEventListener('change', (e) => { contactsListContainer.querySelectorAll('.contact-checkbox').forEach(cb => cb.checked = e.target.checked); });
+        loadSelectedContactsBtn.addEventListener('click', () => {
+            const selected = Array.from(document.querySelectorAll('.contact-checkbox:checked')).map(cb => cb.dataset.phone);
+            if (selected.length === 0) { showToast('Please select at least one contact.', 'info'); return; }
+            let addedCount = 0;
+            selected.forEach(phone => {
+                if (allowDuplicates || !recipientList.includes(phone)) { recipientList.push(phone); addedCount++; } 
+                else { addLog('warn', `Duplicate Number Skipped: ${phone}`); }
+            });
+            renderRecipients(); showToast(`Added ${addedCount} contact(s).`, 'success'); contactsModalOverlay.classList.remove('visible');
+        });
+        contactSearchInput.addEventListener('input', (e) => { renderContactsList(e.target.value); selectAllContactsCheckbox.checked = false; });
+        
+        templatesBtn.addEventListener('click', () => { renderTemplates(); newTemplateNameInput.value = ''; templatesModalOverlay.classList.add('visible'); });
+        cancelTemplateBtn.addEventListener('click', () => templatesModalOverlay.classList.remove('visible'));
+        saveTemplateBtn.addEventListener('click', () => {
+            const name = newTemplateNameInput.value.trim(); const message = messageInput.value.trim();
+            if (!name || !message) { showToast('Please provide a name and message.', 'error'); return; }
+            messageTemplates.push({ name, message }); saveTemplates(); renderTemplates(); newTemplateNameInput.value = ''; showToast('Template saved!', 'success');
+        });
+        templatesListContainer.addEventListener('click', async (e) => {
+            const content = e.target.closest('.list-item-content');
+            if (content) { messageInput.value = messageTemplates[parseInt(content.dataset.index, 10)].message; updateMessageCounter(); templatesModalOverlay.classList.remove('visible'); showToast('Template loaded.', 'info'); }
+            const btn = e.target.closest('.delete-template-btn');
+            if (btn) {
+                if (await showConfirmationModal({ title: 'Delete Template', message: 'Delete this template?', confirmText: 'Delete' })) {
+                    messageTemplates.splice(parseInt(btn.dataset.index, 10), 1); saveTemplates(); renderTemplates(); showToast('Template deleted.', 'info');
+                }
+            }
+        });
+        
+        historyBtn.addEventListener('click', () => { renderHistory(); historyModalOverlay.classList.add('visible'); });
+        closeHistoryBtn.addEventListener('click', () => historyModalOverlay.classList.remove('visible'));
+        clearHistoryBtn.addEventListener('click', async () => { if (sendingHistory.length > 0 && await showConfirmationModal({ title: 'Clear History', message: 'Permanently delete all sending history?', confirmText: 'Clear All' })) { sendingHistory = []; saveHistory(); renderHistory(); showToast('History cleared.', 'info'); } });
+        
+        importContactsBtn.addEventListener('click', () => csvFileInput.click());
+        exportContactsBtn.addEventListener('click', () => {
+            if (contacts.length === 0) { showToast('Contact list is empty.', 'info'); return; }
+            let csv = "data:text/csv;charset=utf-8,Name,Phone\n";
+            contacts.forEach(c => { csv += `"${c.name}","${c.phone}"\n`; });
+            const link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", "sms_contacts.csv"); link.click();
+        });
+        csvFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const rows = event.target.result.split('\n').slice(1); let i = 0, s = 0;
+                rows.forEach(row => {
+                    const cols = row.split(',');
+                    if (cols.length >= 2) {
+                        const name = cols[0].trim().replace(/"/g, ''), phone = formatAndValidatePhoneNumber(cols[1].trim().replace(/"/g, ''));
+                        if (name && phone && !contacts.some(c => c.phone === phone)) { contacts.push({ name, phone }); i++; } 
+                        else { s++; }
+                    }
+                });
+                saveContacts(); renderContactsList(); showToast(`Import complete: Added ${i}, skipped ${s}.`, 'success');
+            };
+            reader.readAsText(file); csvFileInput.value = '';
+        });
+        
+        aiAssistantBtn.addEventListener('click', () => { aiPromptInput.value = ''; aiAssistantModalOverlay.classList.add('visible'); aiPromptInput.focus(); });
+        cancelAiBtn.addEventListener('click', () => aiAssistantModalOverlay.classList.remove('visible'));
+        aiAssistantModalOverlay.addEventListener('click', (e) => { if (e.target === aiAssistantModalOverlay) { aiAssistantModalOverlay.classList.remove('visible'); } });
+        aiPromptForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const prompt = aiPromptInput.value.trim();
+            if (!prompt) { showToast('Please enter a prompt for the AI.', 'error'); return; }
+            const originalBtnContent = generateAiBtn.innerHTML;
+            generateAiBtn.disabled = true; generateAiBtn.innerHTML = 'Generating...';
+            try {
+                const response = await fetch(`${AI_API_URL}?prompt=${encodeURIComponent(prompt)}`);
+                if (!response.ok) throw new Error(`API returned status ${response.status}`);
+                const data = await response.json();
+                if (data && data.response) {
+                    messageInput.value = data.response; updateMessageCounter();
+                    aiAssistantModalOverlay.classList.remove('visible'); showToast('AI message generated!', 'success');
+                } else { throw new Error('Invalid response format from AI API.'); }
+            } catch (error) {
+                addLog('error', 'Failed to generate AI message.', error.message);
+                showToast('Could not generate message. Please try again.', 'error');
+            } finally {
+                generateAiBtn.disabled = false; generateAiBtn.innerHTML = originalBtnContent;
+            }
+        });
+
+        // --- AUTHENTICATION LOGIC ---
+
+        showRegisterLink.addEventListener('click', () => {
+            console.log("Showing Register View.");
+            loginView.style.display = 'none';
+            registerView.style.display = 'block';
+        });
+        showLoginLink.addEventListener('click', () => {
+            console.log("Showing Login View.");
+            loginView.style.display = 'block';
+            registerView.style.display = 'none';
+        });
+
+        auth.onAuthStateChanged(async (user) => {
+            console.log("Auth State Changed. User:", user ? user.email : "none");
+            if (user) { 
+                currentUser = user;
+                userDataRef = db.collection('user_data').doc(user.uid);
+
+                authContainer.style.display = 'none';
+                appContainer.style.display = 'block';
+                userInfo.textContent = `Logged in as: ${user.displayName || user.email}`;
+                console.log("User logged in, loading data...");
+                await loadAllUserData();
+                renderContactsList(); 
+                renderTemplates();
+                renderHistory();
+                updateMessageCounter(); 
+            } else {
+                currentUser = null;
+                userDataRef = null;
+
+                authContainer.style.display = 'block';
+                appContainer.style.display = 'none';
+
+                recipientList = [];
+                contacts = [];
+                messageTemplates = [];
+                sendingHistory = [];
+                SMSGATE_USERNAME = '';
+                SMSGATE_PASSWORD = '';
+                logContainer.innerHTML = '';
+                recipientsBox.innerHTML = '';
+                recipientCount.textContent = '(0)';
+                messageInput.value = '';
+                
+                loginView.style.display = 'block';
+                registerView.style.display = 'none';
+                console.log("User logged out or not authenticated, showing auth forms.");
+            }
+        });
+
+        loginBtn.addEventListener('click', () => {
+            console.log("Login button clicked.");
+            const email = loginEmailInput.value.trim();
+            const password = loginPasswordInput.value;
+            if (!email || !password) {
+                showToast('Please enter both email and password.', 'error');
+                console.log("Login validation failed: fields empty.");
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = 'Logging In...';
+            console.log("Login button disabled, attempting login...");
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    console.log("Login successful in promise.");
+                    showToast('Login successful!', 'success');
+                    // onAuthStateChanged will handle the UI transition automatically.
+                })
+                .catch(error => {
+                    console.error("Login Error (Catch Block):", error.code, error.message, error);
+                    showToast('Invalid credentials. Please check your email and password.', 'error');
+                })
+                .finally(() => {
+                    console.log("Login process finished, re-enabling login button.");
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = 'Login';
+                });
+        });
+
+        registerSubmitBtn.addEventListener('click', async () => {
+            console.log("Register Submit button clicked.");
+            const name = registerNameInput.value.trim();
+            const email = registerEmailInput.value.trim();
+            const password = registerPasswordInput.value;
+
+            // --- Client-Side Validation ---
+            if (!name || !email || !password) {
+                showToast('Please fill out all fields.', 'error');
+                console.log("Register validation failed: fields empty.");
+                return;
+            }
+            if (!isValidEmail(email)) {
+                showToast('Please enter a valid email address.', 'error');
+                console.log("Register validation failed: invalid email.");
+                return;
+            }
+            if (password.length < 6) {
+                showToast('Password must be at least 6 characters long.', 'error');
+                console.log("Register validation failed: weak password.");
+                return;
+            }
+
+            registerSubmitBtn.disabled = true;
+            registerSubmitBtn.innerHTML = 'Creating Account...';
+            console.log("Register button disabled, attempting account creation...");
+
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                console.log("Firebase user created:", user.uid);
+
+                await user.updateProfile({ displayName: name });
+                console.log("User profile updated with name:", name);
+                
+                await auth.signOut(); // Force sign out after registration
+                console.log("User signed out after successful registration.");
+
+                showToast('Account created successfully! You can now log in.', 'success');
+                registerNameInput.value = '';
+                registerEmailInput.value = '';
+                registerPasswordInput.value = '';
+                showLoginLink.click(); // Redirect to login page
+                console.log("Registration successful, redirected to login view.");
+
+            } catch (error) {
+                console.error("Registration Error (Catch Block):", error.code, error.message, error); // Log full error object
+                let message = 'Could not create account. Please try again.';
+                if (error.code === 'auth/email-already-in-use') {
+                    message = 'This email is already registered. Please log in.';
+                } else if (error.code === 'auth/network-request-failed') {
+                    message = 'Network error. Please check your internet connection.';
+                }
+                showToast(message, 'error');
+            } finally {
+                console.log("Finally block entered: re-enabling register button.");
+                registerSubmitBtn.disabled = false;
+                registerSubmitBtn.innerHTML = 'Create Account';
+                console.log("Register button re-enabled.");
+            }
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            console.log("Logout button clicked.");
+            auth.signOut().then(() => {
+                showToast('You have been logged out.', 'info');
+                console.log("User signed out successfully.");
+            }).catch(error => {
+                console.error("Logout Error:", error.message, error);
+                showToast('Error logging out. Please try again.', 'error');
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOMContentLoaded fired. Initializing app.");
+            applyTheme('light'); 
+            // Initial rendering for app components (they will be visible only after login)
+            // These might try to access current user data, ensure they handle null currentUser gracefully.
+            // Or ensure they only render when currentUser is present.
+            // For now, let's just make sure they don't break if no user is logged in.
+            // The actual data loading will happen in onAuthStateChanged when a user logs in.
+            renderRecipients(); 
+            updateMessageCounter();
+            renderContactsList();
+            renderTemplates();
+            renderHistory();
+            console.log("Initial UI elements rendered (empty if not logged in).");
+        });
+
+    </script>
+</body>
+</html>
