@@ -98,6 +98,8 @@
             background-color: var(--bg-color);
             display: flex;
             justify-content: center;
+            align-items: center; /* Center content vertically */
+            min-height: 100vh; /* Ensure body takes full height */
             color: var(--text-color);
             transition: background-color 0.3s, color 0.3s;
             font-size: 14px;
@@ -127,7 +129,7 @@
         }
         
         textarea { margin-bottom: 0.25rem; }
-        input { margin-bottom: 1rem; }
+        /* Removed default margin from input to control it with form-group */
         
         input:focus, textarea:focus {
             outline: none; 
@@ -185,10 +187,10 @@
         .btn-negative:hover { background-color: var(--danger-hover); }
         .btn-secondary { background-color: var(--secondary-color); background-image: none; color: white; }
         .btn-secondary:hover { background-color: var(--secondary-hover); }
-        .btn-neutral { background-color: var(--input-bg); color: var(--label-color); }
+        .btn-neutral { background-color: var(--input-bg); color: var(--label-color); border: 1px solid var(--input-border); }
         .btn-neutral:hover { background-color: var(--recipient-bg); }
         
-        /* NEW: Compact button style for Send/Schedule/Load Selected */
+        /* Compact button style for Send/Schedule/Load Selected */
         .btn-compact {
             padding: 0.7rem 1.1rem; /* Slightly smaller padding */
             font-size: 0.85rem; /* Slightly smaller font */
@@ -332,19 +334,112 @@
         input:checked + .slider { background-color: var(--primary-color); }
         input:checked + .slider:before { transform: translateX(22px); }
         
+        /* --- START NEW/MODIFIED AUTH STYLES --- */
         #auth-container {
             width: 100%;
             max-width: 400px;
             margin: auto;
-            padding: 2.2rem;
+            padding: 2rem;
             background: var(--container-bg);
             border-radius: 1.25rem;
             box-shadow: 0 15px 35px var(--shadow-color);
-            text-align: center;
         }
-        #auth-container h2 { margin-bottom: 1.5rem; font-size: 1.5rem; }
+        #auth-container h2, #auth-container h3 {
+            color: var(--text-color);
+            font-weight: 700;
+        }
+        #login-view .auth-header {
+             text-align: center;
+             margin-bottom: 2rem;
+        }
+        #login-view h3 {
+            font-size: 1.6rem;
+        }
+        .form-group {
+            margin-bottom: 1.25rem;
+            text-align: left;
+        }
+        .form-group label {
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: var(--label-color);
+        }
+        .form-group input { margin-bottom: 0; }
+        .auth-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+        .auth-options a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .auth-options a:hover { text-decoration: underline; }
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            color: var(--label-color);
+        }
+        .custom-checkbox { display: none; }
+        .custom-checkbox + label .checkbox-visual {
+            width: 20px;
+            height: 20px;
+            border: 1px solid var(--input-border);
+            border-radius: 6px;
+            display: inline-block;
+            position: relative;
+            transition: background-color 0.2s;
+        }
+        .custom-checkbox:checked + label .checkbox-visual {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        .custom-checkbox:checked + label .checkbox-visual::after {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 2px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+        .social-login-divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: var(--label-color);
+            margin: 1.5rem 0;
+        }
+        .social-login-divider::before, .social-login-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid var(--input-border);
+        }
+        .social-login-divider:not(:empty)::before { margin-right: .5em; }
+        .social-login-divider:not(:empty)::after { margin-left: .5em; }
+        
+        .btn-social {
+            color: var(--text-color);
+            background-color: var(--container-bg);
+            border: 1px solid var(--input-border);
+            width: 100%;
+        }
+        .btn-social:hover {
+            background-color: var(--input-bg);
+        }
+        .btn-social img { width: 20px; height: 20px; }
+
+        /* --- END NEW/MODIFIED AUTH STYLES --- */
+
         #auth-container .modal-buttons { flex-direction: column; margin-top: 1rem; }
-        .auth-toggle-link { margin-top: 1.5rem; font-size: 0.85rem; color: var(--label-color); }
+        .auth-toggle-link { text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--label-color); }
         .auth-toggle-link a { color: var(--primary-color); text-decoration: none; font-weight: 500; cursor: pointer; }
         .auth-toggle-link a:hover { text-decoration: underline; }
         .user-info { font-size: 0.8rem; margin-bottom: 1rem; color: var(--label-color); }
@@ -451,7 +546,7 @@
 
 
         @media (min-width: 768px) {
-            body { padding: 1.25rem; align-items: center; font-size: 15px; }
+            body { padding: 1.25rem; }
             .container { border-radius: 1.25rem; box-shadow: 0 15px 35px var(--shadow-color); max-width: 600px; margin: 0 auto; min-height: auto; }
             .header { padding: 1.5rem 2.2rem; }
             .header h2 { font-size: 1.5rem; }
@@ -467,18 +562,38 @@
     <div id="auth-container">
         <!-- Login View -->
         <div id="login-view">
-            <h2>Welcome Back!</h2>
-            <p class="modal-message">Please sign in to continue.</p>
-            <div class="input-field-group">
-                <input type="email" id="loginEmail" placeholder="Email" required autocomplete="email">
+            <div class="auth-header">
+                <h3>Log in to your account</h3>
             </div>
-            <div class="input-field-group">
-                <input type="password" id="loginPassword" placeholder="Password" required autocomplete="current-password">
-            </div>
-            <div class="modal-buttons">
-                <button id="loginBtn" class="btn-primary">Login</button>
-            </div>
-            <p class="auth-toggle-link">Don't have an account? <a id="showRegisterLink">Register here</a></p>
+            <form onSubmit="event.preventDefault()">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" required autocomplete="current-password">
+                </div>
+                <div class="auth-options">
+                    <div class="remember-me">
+                        <input type="checkbox" id="remember-me-checkbox" class="custom-checkbox">
+                        <label for="remember-me-checkbox" class="remember-me">
+                           <span class="checkbox-visual"></span>
+                           <span>Remember me</span>
+                        </label>
+                    </div>
+                    <a href="javascript:void(0)">Forgot password?</a>
+                </div>
+                <button id="loginBtn" class="btn-primary">Sign in</button>
+            </form>
+            <div class="social-login-divider"></div>
+            <button id="googleSignInBtn" class="btn-social">
+                <img src="https://raw.githubusercontent.com/sidiDev/remote-assets/7cd06bf1d8859c578c2efbfda2c68bd6bedc66d8/google-icon.svg" alt="Google Icon">
+                Continue with Google
+            </button>
+            <p class="auth-toggle-link">
+                Don't have an account? <a id="showRegisterLink">Sign up</a>
+            </p>
         </div>
 
         <!-- Registration View -->
@@ -840,6 +955,7 @@
         const registerEmailInput = document.getElementById('registerEmail');
         const registerPasswordInput = document.getElementById('registerPassword');
         const loginBtn = document.getElementById('loginBtn');
+        const googleSignInBtn = document.getElementById('googleSignInBtn'); // New button
         const registerSubmitBtn = document.getElementById('registerSubmitBtn');
         const logoutBtn = document.getElementById('logoutBtn');
         const userInfo = document.getElementById('userInfo');
@@ -880,7 +996,6 @@
         const addContactForm = document.getElementById('addContactForm');
         const cancelAddContactBtn = document.getElementById('cancelAddContactBtn');
         const contactNameInput = document.getElementById('contactName');
-        // FIX: Corrected typo for contactPhoneInput selection
         const contactPhoneInput = document.getElementById('contactPhone');
         const contactsListContainer = document.getElementById('contacts-list-container');
         const selectAllContactsCheckbox = document.getElementById('selectAllContactsCheckbox');
@@ -888,7 +1003,6 @@
         const contactSearchInput = document.getElementById('contactSearchInput');
         const allowDuplicatesCheckbox = document.getElementById('allowDuplicatesCheckbox');
         const togglePasswordBtn = document.getElementById('togglePasswordBtn');
-        // FIX: Select eye icons within the togglePasswordBtn
         const eyeIcon = togglePasswordBtn.querySelector('#eye-icon');
         const eyeOffIcon = togglePasswordBtn.querySelector('#eye-off-icon');
         const scheduleBtn = document.getElementById('scheduleBtn');
@@ -1249,9 +1363,6 @@
         }
 
         // --- EVENT LISTENERS (Main App) ---
-        // (Re-declaring existing element selections and event listeners for context - already done above)
-        // These are intentionally kept as they were in the original code, except for the bug fixes.
-        
         themeToggle.addEventListener('change', () => saveSettings());
         settingsBtn.addEventListener('click', toggleSidebar);
         sidebarOverlay.addEventListener('click', toggleSidebar);
@@ -1509,9 +1620,34 @@
                 .finally(() => {
                     console.log("Login process finished, re-enabling login button.");
                     loginBtn.disabled = false;
-                    loginBtn.innerHTML = 'Login';
+                    loginBtn.innerHTML = 'Sign in';
                 });
         });
+
+        googleSignInBtn.addEventListener('click', () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            console.log("Google Sign-In button clicked. Firing popup.");
+
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    const user = result.user;
+                    console.log("Google Sign-In successful for user:", user.displayName);
+                    showToast(`Welcome, ${user.displayName}!`, 'success');
+                    // onAuthStateChanged will handle the rest.
+                }).catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    console.error("Google Sign-In Error:", errorCode, errorMessage);
+                    let userMessage = "Could not sign in with Google. Please try again.";
+                    if (errorCode === 'auth/popup-closed-by-user') {
+                        userMessage = 'Sign-in cancelled.';
+                    } else if (errorCode === 'auth/account-exists-with-different-credential') {
+                        userMessage = 'An account already exists with this email. Please sign in with your original method.';
+                    }
+                    showToast(userMessage, 'error');
+                });
+        });
+
 
         registerSubmitBtn.addEventListener('click', async () => {
             console.log("Register Submit button clicked.");
@@ -1590,10 +1726,6 @@
             console.log("DOMContentLoaded fired. Initializing app.");
             applyTheme('light'); 
             // Initial rendering for app components (they will be visible only after login)
-            // These might try to access current user data, ensure they handle null currentUser gracefully.
-            // Or ensure they only render when currentUser is present.
-            // For now, let's just make sure they don't break if no user is logged in.
-            // The actual data loading will happen in onAuthStateChanged when a user logs in.
             renderRecipients(); 
             updateMessageCounter();
             renderContactsList();
